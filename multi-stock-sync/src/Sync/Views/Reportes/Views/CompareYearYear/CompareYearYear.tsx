@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import axiosInstance from '../../../../../axiosConfig';
 import styles from './CompareYearYear.module.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Modal } from 'react-bootstrap';
-
+import axiosInstance from '../../../../../axiosConfig';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver'; /* esta funcionando 👌 */
 import { LoadingDinamico } from '../../../../../components/LoadingDinamico/LoadingDinamico';
@@ -258,8 +257,7 @@ const CompareYearYear: React.FC = () => {
                                         Cambio Porcentual: <strong>{result.data.percentage_change}%</strong>
                                     </p>
 
-                                    <button onClick={generatePDF} className="btn btn-secondary mx-3">Generar PDF</button>
-                                                
+                                    <button onClick={generatePDF} className="btn btn-secondary" style={{ marginRight: '20px' }}>Generar PDF</button>
 
                                     <button onClick={exportToExcel} className="btn btn-success">Descargar Excel</button>
 
@@ -269,6 +267,8 @@ const CompareYearYear: React.FC = () => {
                             )}
                         </div>
 
+
+                        {/* fin de la generacion de la tabla -------------------------------------------------------------------------- */}
                     </>
                 )}
             </div>

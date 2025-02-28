@@ -140,6 +140,10 @@ const HomeReportes: React.FC = () => {
               <>
                 <h3 className="mt-4">Reportes Disponibles</h3>
                 <div className="list-group mb-5">
+
+                  <Link to={`/sync/reportes/ventas/${selectedConnection}`} className="list-group-item list-group-item-action" target="_blank">
+                    <FontAwesomeIcon icon={faChartLine} className="mr-2" /> Ventas
+                  </Link>
                   <Link to={`/sync/reportes/ventas-mes/${selectedConnection}`} className="list-group-item list-group-item-action" target="_blank">
                     <FontAwesomeIcon icon={faChartLine} className="mr-2" /> Ventas totales por mes
                   </Link>

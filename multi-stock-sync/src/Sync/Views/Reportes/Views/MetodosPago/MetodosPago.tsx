@@ -17,6 +17,7 @@ import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { LoadingDinamico } from '../../../../../components/LoadingDinamico/LoadingDinamico';
 import axiosInstance from '../../../../../axiosConfig';
+
 ChartJS.register(ArcElement, Tooltip, Legend, ChartDataLabels);
 
 const MetodosPago: React.FC = () => {

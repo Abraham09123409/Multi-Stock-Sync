@@ -1,57 +1,167 @@
+/* Estilos generales de la página */
 .customContainer {
-    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-    min-height: 100vh;
-    padding: 2rem 0;
-  }
-  
-  .customCard {
-    border: none;
-    border-radius: 15px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-  }
-  
-  .customHeader {
-    background-color: #007bff;
-    color: white;
-    padding: 1.5rem;
-    border-radius: 15px 15px 0 0;
-    text-align: center;
-  }
-  
-  .customTable th {
-    background-color: #343a40;
-    color: white;
-  }
-  
-  .customTable td {
-    vertical-align: middle;
-  }
-  
-  .customBtn {
-    transition: all 0.3s ease;
-  }
-  
-  .customBtn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  }
-  
-  .customFooter {
-    background-color: #343a40;
-    color: white;
-    padding: 1rem;
-    position: fixed;
-    bottom: 0;
-    width: 100%;
-    left: 0;
-    text-align: center;
-  }
-  
-  .customSelect {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  
-  .customInput {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  min-height: 100vh;
+  padding: 2rem 0;
+}
+
+.customCard {
+  border: none;
+  border-radius: 15px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.customHeader {
+  background-color: #007bff;
+  color: white;
+  padding: 1.5rem;
+  border-radius: 15px 15px 0 0;
+  text-align: center;
+}
+
+.customTable th {
+  background-color: #343a40;
+  color: white;
+}
+
+.customTable td {
+  vertical-align: middle;
+}
+
+.customBtn {
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.customBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.customFooter {
+  background-color: #343a40;
+  color: white;
+  padding: 1rem;
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  left: 0;
+  text-align: center;
+}
+
+.customSelect {
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.customSelect:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.customInput {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.customInput:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Estilos para los filtros de fecha y cantidad */
+.floatingLabel {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.floatingLabel .form-control {
+  height: 48px;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #ced4da;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.floatingLabel .form-control:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.floatingLabel .form-label {
+  position: absolute;
+  top: 0;
+  left: 1rem;
+  padding: 0 0.25rem;
+  background: #fff;
+  color: #6c757d;
+  font-size: 0.9rem;
+  transform: translateY(-50%);
+  transition: all 0.3s ease;
+}
+
+.floatingLabel .form-control:placeholder-shown + .form-label {
+  transform: translateY(50%);
+  font-size: 1rem;
+  color: #adb5bd;
+}
+
+/* Estilos para la paginación */
+.paginationContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-top: 2rem;
+}
+
+.paginationBtn {
+  padding: 0.5rem 1.5rem;
+  border-radius: 8px;
+  background-color: #007bff;
+  border: none;
+  color: white;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.paginationBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  background-color: #0056b3;
+}
+
+.paginationBtn:disabled {
+  opacity: 0.6;
+  transform: none;
+  box-shadow: none;
+  background-color: #007bff;
+}
+
+.pageSelect {
+  width: 120px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid #ced4da;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.pageSelect:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.pageInfo {
+  font-size: 1rem;
+  color: #343a40;
+  font-weight: 500;
+}

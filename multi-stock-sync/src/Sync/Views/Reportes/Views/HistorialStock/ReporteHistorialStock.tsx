@@ -1,18 +1,37 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+// Importa React y hooks para manejar estado (useState), efectos secundarios (useEffect), 
+// memoización de funciones (useCallback) y valores calculados (useMemo).
+
 import { Table, Button, Modal, Alert, Form, Container, Row, Col, Card } from "react-bootstrap";
+// Importa componentes de React-Bootstrap para construir la interfaz (tablas, botones, modales, etc.).
+
 import { Link } from "react-router-dom";
+// Permite navegar entre rutas en la aplicación.
+
 import axiosInstance from "../../../../../axiosConfig";
+// Importa una instancia configurada de Axios para hacer solicitudes HTTP a la API.
+
 import { LoadingDinamico } from "../../../../../components/LoadingDinamico/LoadingDinamico";
+// Componente personalizado para mostrar un indicador de carga.
+
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faInfoCircle, faHistory, faSync, faChevronLeft, faChevronRight, faSearch } from "@fortawesome/free-solid-svg-icons";
+// Biblioteca para usar íconos.
+
+import { faInfoCircle, faHistory, faSync, faChevronLeft, faChevronRight, faSearch, faSort, faTimes } from "@fortawesome/free-solid-svg-icons";
+// Íconos específicos usados en la interfaz (info, historial, sincronizar, flechas, etc.).
+
 import "bootstrap/dist/css/bootstrap.min.css";
+// Estilos base de Bootstrap.
+
 import styles from "./historialStock.module.css";
+// Estilos personalizados específicos para este componente.
 
 // Interfaces
 interface SalesHistory {
   date: string;
   quantity: number;
 }
+// Define la estructura de un registro del historial de ventas: fecha y cantidad vendida.
 
 interface Detail {
   id: string;
@@ -22,6 +41,7 @@ interface Detail {
   values: { id: string; name: string; struct: null }[];
   value_type: string;
 }
+// Define detalles adicionales de un producto (como atributos específicos).
 
 interface HistorialStock {
   id: string;
@@ -33,42 +53,94 @@ interface HistorialStock {
   sku: string;
   details?: Detail[];
 }
+// Define la estructura de un producto en el historial de stock, con datos como ID, título, cantidad disponible, fechas, historial de ventas y detalles opcionales.
 
 interface ClientData {
   nickname: string;
 }
+// Datos del cliente (solo el nickname por ahora).
 
 interface Connection {
   client_id: string;
   nickname: string;
 }
+// Define una conexión a MercadoLibre con un ID y un nickname.
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
-const ITEMS_PER_PAGE = 25;
+// Obtiene la URL base de la API desde las variables de entorno (por ejemplo, .env).
+
+const ITEMS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
+// Opciones para cuántos elementos mostrar por página en la tabla.
 
 const HistorialStock: React.FC = () => {
+  // Define el componente como un Functional Component de React.
+
+  // Estados del componente:
   const [historialStock, setHistorialStock] = useState<HistorialStock[]>([]);
+  // Almacena la lista de productos con su historial de stock.
+
   const [loading, setLoading] = useState<boolean>(false);
+  // Indica si los datos principales están cargando.
+
   const [error, setError] = useState<string | null>(null);
+  // Almacena mensajes de error para los datos principales.
+
   const [userData, setUserData] = useState<ClientData | null>(null);
+  // Guarda los datos del usuario (nickname).
+
   const [showModal, setShowModal] = useState<boolean>(false);
+  // Controla si el modal está visible.
+
   const [selectedProduct, setSelectedProduct] = useState<HistorialStock | null>(null);
+  // Producto seleccionado para ver detalles o historial.
+
   const [viewMode, setViewMode] = useState<"details" | "history">("details");
+  // Modo del modal: "details" para detalles, "history" para historial de ventas.
+
   const [currentPage, setCurrentPage] = useState<number>(1);
+  // Página actual de la tabla paginada.
+
+  const [itemsPerPage, setItemsPerPage] = useState<number>(ITEMS_PER_PAGE_OPTIONS[1]);
+  // Cantidad de ítems por página (por defecto 25).
+
   const [searchTerm, setSearchTerm] = useState<string>("");
+  // Término de búsqueda para filtrar la tabla.
+
   const [connections, setConnections] = useState<Connection[]>([]);
+  // Lista de conexiones disponibles a MercadoLibre.
+
   const [selectedConnection, setSelectedConnection] = useState<string>("");
+  // Conexión seleccionada actualmente.
+
   const [historyLoading, setHistoryLoading] = useState<boolean>(false);
+  // Indica si el historial de ventas está cargando.
+
   const [historyError, setHistoryError] = useState<string | null>(null);
+  // Mensaje de error para el historial de ventas.
+
+  const [sortConfig, setSortConfig] = useState<{ key: keyof HistorialStock; direction: 'asc' | 'desc' } | null>(null);
+  // Configuración de ordenamiento de la tabla (columna y dirección).
+
+  const [dateFilter, setDateFilter] = useState<{ start?: string; end?: string }>({});
+  // Filtro por rango de fechas.
+
+  const [quantityFilter, setQuantityFilter] = useState<{ min?: number; max?: number }>({});
+  // Filtro por rango de cantidades.
+
+  const [salesHistoryCache, setSalesHistoryCache] = useState<Map<string, SalesHistory[]>>(new Map());
+  // Caché para almacenar historiales de ventas ya cargados.
 
   useEffect(() => {
     const fetchConnections = async () => {
       try {
         const response = await axiosInstance.get(`${API_BASE_URL}/mercadolibre/credentials`);
+        // Solicita la lista de conexiones a la API.
         console.log("Conexiones obtenidas:", response.data.data);
         setConnections(response.data.data);
+        // Guarda las conexiones en el estado.
         if (response.data.data.length > 0) {
           setSelectedConnection(response.data.data[0].client_id);
+          // Selecciona la primera conexión por defecto.
         } else {
           setError("No se encontraron conexiones disponibles.");
         }
@@ -79,12 +151,12 @@ const HistorialStock: React.FC = () => {
     };
     fetchConnections();
   }, []);
+  // Se ejecuta una vez al montar el componente para cargar las conexiones.
 
   const processStockData = useCallback((data: any[]): HistorialStock[] => {
     const salesMap: { [key: string]: HistorialStock } = {};
     data.forEach((item) => {
       const productId = item.id || "";
-      const saleDate = item.purchase_sale_date.split("T")[0];
       if (!salesMap[productId]) {
         salesMap[productId] = {
           id: productId,
@@ -97,14 +169,9 @@ const HistorialStock: React.FC = () => {
           details: item.details || [],
         };
       }
-      const existingEntry = salesMap[productId].history.find((entry) => entry.date === saleDate);
-      if (existingEntry) {
-        existingEntry.quantity += item.available_quantity || 0;
-      } else {
-        salesMap[productId].history.push({ date: saleDate, quantity: item.available_quantity || 0 });
-      }
     });
     return Object.values(salesMap);
+    // Transforma los datos crudos de la API en el formato HistorialStock.
   }, []);
 
   const fetchData = useCallback(async () => {
@@ -120,6 +187,7 @@ const HistorialStock: React.FC = () => {
         axiosInstance.get(`${API_BASE_URL}/mercadolibre/stock/${selectedConnection}`),
         axiosInstance.get(`${API_BASE_URL}/mercadolibre/credentials/${selectedConnection}`),
       ]);
+      // Hace dos solicitudes paralelas: una para el stock y otra para los datos del usuario.
 
       console.log("Datos de stock:", stockResponse.data.data);
       const stockData = Array.isArray(stockResponse.data.data)
@@ -137,43 +205,70 @@ const HistorialStock: React.FC = () => {
       setLoading(false);
     }
   }, [selectedConnection, processStockData]);
+  // Carga los datos de stock y usuario cuando cambia la conexión seleccionada.
 
   const fetchSalesHistory = useCallback(async (clientId: string, productId: string) => {
+    const cacheKey = `${clientId}-${productId}`;
+    if (salesHistoryCache.has(cacheKey)) {
+      return salesHistoryCache.get(cacheKey)!;
+      // Usa la caché si ya se cargó el historial.
+    }
+
     setHistoryLoading(true);
     setHistoryError(null);
     try {
       if (!clientId || !productId) {
         throw new Error("Falta el clientId o productId para la solicitud.");
       }
-      const url = `${API_BASE_URL}/mercadolibre/stock-sales-history/${clientId}/${productId}`;
-      console.log(`Haciendo solicitud a: ${url}`);
-      const response = await axiosInstance.get(url);
-      console.log("Respuesta del endpoint:", response.data);
+      const baseUrl = `${API_BASE_URL}/mercadolibre/stock-sales-history/${clientId}/${productId}`;
+      let allSales: any[] = [];
+      let page = 1;
+      let hasMore = true;
+      const limit = 100;
+      // Paginación para obtener todas las ventas.
 
-      // Verificamos si la respuesta tiene el formato esperado
-      if (!response.data || typeof response.data !== "object") {
-        throw new Error("La respuesta del endpoint no tiene el formato esperado.");
-      }
+      while (hasMore) {
+        const url = `${baseUrl}?page=${page}&limit=${limit}`;
+        console.log(`Haciendo solicitud a: ${url}`);
+        const response = await axiosInstance.get(url);
+        console.log(`Respuesta del endpoint (página ${page}):`, JSON.stringify(response.data, null, 2));
 
-      // Intentamos acceder al campo "sales", pero también manejamos si los datos están directamente en response.data
-      const salesData = response.data.sales || (Array.isArray(response.data) ? response.data : []);
-      if (!Array.isArray(salesData)) {
-        console.warn("salesData no es un array:", salesData);
-        return [];
-      }
-
-      const salesHistory: SalesHistory[] = salesData.map((sale: any) => {
-        if (!sale.sale_date || sale.quantity === undefined) {
-          console.warn("Entrada de historial inválida:", sale);
-          return null;
+        if (!response.data || typeof response.data !== "object") {
+          throw new Error("La respuesta del endpoint no tiene el formato esperado.");
         }
-        return {
-          date: sale.sale_date,
-          quantity: sale.quantity,
-        };
-      }).filter((entry: SalesHistory | null) => entry !== null) as SalesHistory[];
 
-      console.log("Historial mapeado:", salesHistory);
+        const salesData = response.data.sales || [];
+        const totalSalesCount = response.data.sales_count || 0;
+
+        if (!Array.isArray(salesData)) {
+          throw new Error("El campo 'sales' no es un arreglo.");
+        }
+
+        allSales = [...allSales, ...salesData];
+
+        if (allSales.length >= totalSalesCount || salesData.length < limit) {
+          hasMore = false;
+        } else {
+          page++;
+        }
+      }
+
+      const salesHistory: SalesHistory[] = allSales
+        .map((sale: any) => {
+          if (!sale.sale_date || sale.quantity === undefined) {
+            console.warn("Entrada de historial inválida:", sale);
+            return null;
+          }
+          console.log("Fecha de venta en historial:", sale.sale_date, "Cantidad vendida:", sale.quantity);
+          return {
+            date: sale.sale_date,
+            quantity: sale.quantity,
+          };
+        })
+        .filter((entry: SalesHistory | null) => entry !== null) as SalesHistory[];
+
+      console.log("Historial completo mapeado:", salesHistory);
+      setSalesHistoryCache(prev => new Map(prev).set(cacheKey, salesHistory));
       return salesHistory;
     } catch (err: any) {
       const errorMessage = err.response
@@ -185,11 +280,12 @@ const HistorialStock: React.FC = () => {
     } finally {
       setHistoryLoading(false);
     }
-  }, []);
+  }, [salesHistoryCache]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+  // Carga los datos principales cada vez que fetchData cambia (por ejemplo, al cambiar la conexión).
 
   const handleViewDetails = useCallback(
     async (product: HistorialStock, mode: "details" | "history") => {
@@ -205,7 +301,7 @@ const HistorialStock: React.FC = () => {
       setViewMode(mode);
       setShowModal(true);
 
-      if (mode === "history") {
+      if (mode === "history" && (!product.history || product.history.length === 0)) {
         if (!selectedConnection) {
           console.log("No hay conexión seleccionada para cargar el historial.");
           setHistoryError("Por favor, selecciona una conexión.");
@@ -220,24 +316,62 @@ const HistorialStock: React.FC = () => {
     },
     [selectedConnection, fetchSalesHistory]
   );
+  // Muestra el modal con detalles o historial y carga el historial si es necesario.
 
-  const filteredData = useMemo(() => {
-    if (!searchTerm) return historialStock;
-    const lowerSearchTerm = searchTerm.toLowerCase();
-    return historialStock.filter(
-      (item) =>
-        item.title.toLowerCase().includes(lowerSearchTerm) ||
-        item.sku.toLowerCase().includes(lowerSearchTerm)
-    );
-  }, [historialStock, searchTerm]);
+  const handleSort = (key: keyof HistorialStock) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig?.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+  // Ordena la tabla por una columna específica en orden ascendente o descendente.
+
+  const filteredAndSortedData = useMemo(() => {
+    let result = [...historialStock];
+
+    // Filtro de búsqueda
+    if (searchTerm) {
+      const lowerSearchTerm = searchTerm.toLowerCase();
+      result = result.filter(
+        (item) =>
+          (item.title || "").toLowerCase().includes(lowerSearchTerm) ||
+          (item.sku || "").toLowerCase().includes(lowerSearchTerm) ||
+          (item.id || "").toLowerCase().includes(lowerSearchTerm)
+      );
+    }
+
+    // Filtro por fechas
+    if (dateFilter.start || dateFilter.end) {
+      result = result.filter(item => {
+        const date = new Date(item.purchase_sale_date || "");
+        const start = dateFilter.start ? new Date(dateFilter.start) : null;
+        const end = dateFilter.end ? new Date(dateFilter.end) : null;
+        return (!start || date >= start) && (!end || date <= end);
+      });
+    }
+
+    // Filtro por cantidad
+    if (quantityFilter.min || quantityFilter.max) {
+      result = result.filter(item => {
+        const qty = item.available_quantity || 0;
+        return (!quantityFilter.min || qty >= quantityFilter.min) && 
+               (!quantityFilter.max || qty <= quantityFilter.max);
+      });
+    }
+
+
+
+    return result;
+  }, [historialStock, searchTerm, sortConfig, dateFilter, quantityFilter]);
 
   const paginatedData = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-    return filteredData.slice(startIndex, endIndex);
-  }, [filteredData, currentPage]);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredAndSortedData.slice(startIndex, endIndex);
+  }, [filteredAndSortedData, currentPage, itemsPerPage]);
 
-  const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage);
 
   const handlePreviousPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
@@ -247,6 +381,10 @@ const HistorialStock: React.FC = () => {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
 
+  const handlePageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setCurrentPage(Number(e.target.value));
+  };
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
     setCurrentPage(1);
@@ -254,6 +392,44 @@ const HistorialStock: React.FC = () => {
 
   const handleConnectionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedConnection(e.target.value);
+  };
+
+  const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setItemsPerPage(Number(e.target.value));
+    setCurrentPage(1);
+  };
+
+  const handleDateFilterChange = (field: 'start' | 'end', value: string) => {
+    setDateFilter(prev => ({ ...prev, [field]: value }));
+    setCurrentPage(1);
+  };
+
+  const handleQuantityFilterChange = (field: 'min' | 'max', value: string) => {
+    setQuantityFilter(prev => ({ ...prev, [field]: value ? Number(value) : undefined }));
+    setCurrentPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setDateFilter({ start: undefined, end: undefined });
+    setQuantityFilter({ min: undefined, max: undefined });
+    setCurrentPage(1);
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleString("es-ES", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (error) {
+      console.error("Error al formatear la fecha:", dateString, error);
+      return "Fecha inválida";
+    }
   };
 
   return (
@@ -266,7 +442,6 @@ const HistorialStock: React.FC = () => {
               {userData && <h4 className="mt-2">{userData.nickname}</h4>}
             </div>
             <Card.Body className="p-4">
-              {/* Selector de Conexión */}
               <Row className="mb-4">
                 <Col>
                   <Form.Select
@@ -284,7 +459,6 @@ const HistorialStock: React.FC = () => {
                 </Col>
               </Row>
 
-              {/* Botones y Búsqueda */}
               <Row className="mb-4 align-items-center">
                 <Col xs={12} md={6}>
                   <Link to="/sync/home" className={`btn btn-primary ${styles.customBtn}`}>
@@ -295,7 +469,7 @@ const HistorialStock: React.FC = () => {
                   <Form className="d-flex" style={{ maxWidth: "300px" }}>
                     <Form.Control
                       type="text"
-                      placeholder="Buscar por Nombre o SKU..."
+                      placeholder="Buscar por Nombre, SKU o Número de Impresión..."
                       value={searchTerm}
                       onChange={handleSearchChange}
                       className={styles.customInput}
@@ -316,7 +490,82 @@ const HistorialStock: React.FC = () => {
                 </Col>
               </Row>
 
-              {/* Contenido */}
+              <Row className="mb-4">
+                <Col md={3} className="mb-3">
+                  <Form.Group className={styles.floatingLabel}>
+                    <Form.Control
+                      type="date"
+                      id="dateStart"
+                      value={dateFilter.start || ''}
+                      onChange={(e) => handleDateFilterChange('start', e.target.value)}
+                      className={styles.customInputFilter}
+                    />
+                    <Form.Label htmlFor="dateStart">Fecha Inicio</Form.Label>
+                  </Form.Group>
+                </Col>
+                <Col md={3} className="mb-3">
+                  <Form.Group className={styles.floatingLabel}>
+                    <Form.Control
+                      type="date"
+                      id="dateEnd"
+                      value={dateFilter.end || ''}
+                      onChange={(e) => handleDateFilterChange('end', e.target.value)}
+                      className={styles.customInputFilter}
+                    />
+                    <Form.Label htmlFor="dateEnd">Fecha Fin</Form.Label>
+                  </Form.Group>
+                </Col>
+                <Col md={3} className="mb-3">
+                  <Form.Group className={styles.floatingLabel}>
+                    <Form.Control
+                      type="number"
+                      id="quantityMin"
+                      value={quantityFilter.min || ''}
+                      onChange={(e) => handleQuantityFilterChange('min', e.target.value)}
+                      className={styles.customInputFilter}
+                    />
+                    <Form.Label htmlFor="quantityMin">Cant. Mínima</Form.Label>
+                  </Form.Group>
+                </Col>
+                <Col md={3} className="mb-3">
+                  <Form.Group className={styles.floatingLabel}>
+                    <Form.Control
+                      type="number"
+                      id="quantityMax"
+                      value={quantityFilter.max || ''}
+                      onChange={(e) => handleQuantityFilterChange('max', e.target.value)}
+                      className={styles.customInputFilter}
+                    />
+                    <Form.Label htmlFor="quantityMax">Cant. Máxima</Form.Label>
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <Row className="mb-3 align-items-center">
+                <Col md={3} className="mb-3">
+                  <Form.Select
+                    value={itemsPerPage}
+                    onChange={handleItemsPerPageChange}
+                    className={styles.customSelect}
+                  >
+                    {ITEMS_PER_PAGE_OPTIONS.map(option => (
+                      <option key={option} value={option}>
+                        {option} por página
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Col>
+                <Col md={3} className="mb-3">
+                  <Button
+                    variant="outline-danger"
+                    onClick={handleClearFilters}
+                    className={styles.customBtn}
+                  >
+                    <FontAwesomeIcon icon={faTimes} /> Limpiar Filtros
+                  </Button>
+                </Col>
+              </Row>
+
               {loading ? (
                 <LoadingDinamico variant="container" />
               ) : error ? (
@@ -333,11 +582,21 @@ const HistorialStock: React.FC = () => {
                       <thead>
                         <tr>
                           <th>#</th>
-                          <th>Numero de impresión</th>
-                          <th>Sku</th>
-                          <th>Nombre del Producto</th>
-                          <th>Cantidad Disponible</th>
-                          <th>Fecha de Venta</th>
+                          <th onClick={() => handleSort('id')} style={{ cursor: 'pointer' }}>
+                            Numero de impresión <FontAwesomeIcon icon={faSort} />
+                          </th>
+                          <th onClick={() => handleSort('sku')} style={{ cursor: 'pointer' }}>
+                            Sku <FontAwesomeIcon icon={faSort} />
+                          </th>
+                          <th onClick={() => handleSort('title')} style={{ cursor: 'pointer' }}>
+                            Nombre del Producto <FontAwesomeIcon icon={faSort} />
+                          </th>
+                          <th onClick={() => handleSort('available_quantity')} style={{ cursor: 'pointer' }}>
+                            Cantidad Disponible <FontAwesomeIcon icon={faSort} />
+                          </th>
+                          <th onClick={() => handleSort('purchase_sale_date')} style={{ cursor: 'pointer' }}>
+                            Fecha de Última Venta <FontAwesomeIcon icon={faSort} />
+                          </th>
                           <th>Acciones</th>
                         </tr>
                       </thead>
@@ -345,12 +604,12 @@ const HistorialStock: React.FC = () => {
                         {paginatedData.length > 0 ? (
                           paginatedData.map((item, index) => (
                             <tr key={item.id}>
-                              <td>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
+                              <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
                               <td>{item.id}</td>
                               <td>{item.sku}</td>
                               <td className="fw-bold">{item.title}</td>
                               <td className="text-success">{item.available_quantity}</td>
-                              <td>{new Date(item.purchase_sale_date).toLocaleDateString()}</td>
+                              <td>{formatDate(item.purchase_sale_date)}</td>
                               <td>
                                 <div className="d-flex gap-2 justify-content-center">
                                   <Button
@@ -372,38 +631,48 @@ const HistorialStock: React.FC = () => {
                             </tr>
                           ))
                         ) : (
-                          <tr>
-                            <td colSpan={7} className="text-center py-3">
-                              {searchTerm ? "No se encontraron resultados" : "No hay datos disponibles"}
-                            </td>
-                          </tr>
+                          <tr><td colSpan={7} className="text-center py-3">{searchTerm ? "No se encontraron resultados" : "No hay datos disponibles"}</td></tr>
                         )}
                       </tbody>
                     </Table>
                   </div>
 
-                  {/* Paginación */}
                   {totalPages > 1 && (
-                    <Row className="mt-4 justify-content-center align-items-center">
+                    <Row className={`mt-4 align-items-center ${styles.paginationContainer}`}>
                       <Col xs="auto">
                         <Button
-                          variant="outline-primary"
+                          variant="primary"
                           onClick={handlePreviousPage}
                           disabled={currentPage === 1}
-                          className={styles.customBtn}
+                          className={styles.paginationBtn}
                         >
                           <FontAwesomeIcon icon={faChevronLeft} /> Anterior
                         </Button>
                       </Col>
                       <Col xs="auto">
-                        <span>Página {currentPage} de {totalPages}</span>
+                        <Form.Select
+                          value={currentPage}
+                          onChange={handlePageChange}
+                          className={styles.pageSelect}
+                        >
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                            <option key={page} value={page}>
+                              Página {page}
+                            </option>
+                          ))}
+                        </Form.Select>
+                      </Col>
+                      <Col xs="auto">
+                        <span className={styles.pageInfo}>
+                          de {totalPages}
+                        </span>
                       </Col>
                       <Col xs="auto">
                         <Button
-                          variant="outline-primary"
+                          variant="primary"
                           onClick={handleNextPage}
                           disabled={currentPage === totalPages}
-                          className={styles.customBtn}
+                          className={styles.paginationBtn}
                         >
                           Siguiente <FontAwesomeIcon icon={faChevronRight} />
                         </Button>
@@ -417,12 +686,10 @@ const HistorialStock: React.FC = () => {
         </Col>
       </Row>
       <br /><br />
-      {/* Footer */}
       <footer className={styles.customFooter}>
         Multi Stock Sync © {new Date().getFullYear()}
       </footer>
 
-      {/* Modal */}
       <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
         <Modal.Header closeButton className="bg-primary text-white">
           <Modal.Title>
@@ -436,8 +703,8 @@ const HistorialStock: React.FC = () => {
               <p><strong>Nombre del Producto:</strong> {selectedProduct.title}</p>
               <p><strong>Cantidad Disponible:</strong> {selectedProduct.available_quantity}</p>
               <p>
-                <strong>Fecha de Venta:</strong>{" "}
-                {new Date(selectedProduct.purchase_sale_date).toLocaleString()}
+                <strong>Fecha de Última Venta:</strong>{" "}
+                {formatDate(selectedProduct.purchase_sale_date)}
               </p>
               {selectedProduct.details && selectedProduct.details.length > 0 ? (
                 <div>
@@ -457,7 +724,7 @@ const HistorialStock: React.FC = () => {
           )}
           {selectedProduct && viewMode === "history" && (
             <div className="p-3">
-              <h5 className="fw-bold text-primary">Historial de Ventas:</h5>
+              <h5 className="fw-bold text-primary">{selectedProduct.title}</h5>
               {historyLoading ? (
                 <LoadingDinamico variant="container" />
               ) : historyError ? (
@@ -475,14 +742,15 @@ const HistorialStock: React.FC = () => {
                 <ul className="list-group">
                   {selectedProduct.history.map((entry, index) => (
                     <li key={index} className="list-group-item">
-                      {new Date(entry.date).toLocaleDateString()} - Cantidad Vendida:{" "}
-                      <strong>{entry.quantity}</strong>
+                      {formatDate(entry.date)} - Cantidad Vendida: <strong>{entry.quantity}</strong>
                     </li>
                   ))}
                 </ul>
               ) : (
                 <p className="text-muted mt-3">
-                  No hay historial de ventas disponible para este producto.
+                  {selectedProduct.purchase_sale_date && new Date(selectedProduct.purchase_sale_date).getTime() > 0
+                    ? `No hay ventas registradas en el historial, pero la última venta reportada fue el ${formatDate(selectedProduct.purchase_sale_date)}.`
+                    : "No hay historial de ventas disponible para este producto."}
                 </p>
               )}
             </div>
@@ -496,6 +764,7 @@ const HistorialStock: React.FC = () => {
       </Modal>
     </Container>
   );
+  
 };
 
 export default HistorialStock;

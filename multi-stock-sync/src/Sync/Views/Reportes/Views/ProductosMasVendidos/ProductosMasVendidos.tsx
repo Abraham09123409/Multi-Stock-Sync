@@ -161,12 +161,13 @@ const Productos: React.FC = () => {
     //función que genera el excel
     const exportToExcel = () => {
         const worksheet = XLSX.utils.json_to_sheet(productos.map(producto => ({//forma de los campos y texto del encabezado
-            ID: `${producto.id}`, // Numero de Impresión
+            Numero_de_Impresión: `${producto.id}`, // Numero de Impresión
             SKU: producto.sku,// SKU del producto en mercado libre en las 5 cuentas
             Título: producto.title,//nombre del producto
             Variante: `${producto.variation_id}`, // Agregar comilla simple para evitar truncamiento
             Cantidad: producto.quantity,//cantidad vendida
-            Total: currencyFormat.format(producto.total_amount) // Formato CLP
+            Total: currencyFormat.format(producto.total_amount), // Formato CLP
+            Talla: producto.size
         })));
 
         const workbook = XLSX.utils.book_new();
@@ -190,8 +191,8 @@ const Productos: React.FC = () => {
         
         autoTable(doc, {
             startY: 50, // Ajusta este valor para que no se solape
-            head: [['#', 'Producto', 'Total Vendido']],
-            body: productos.map((prod, index) => [index + 1, prod.title, currencyFormat.format(prod.total_amount)]),
+            head: [['Producto', 'Total Vendido','SKU','Numero de impresión', 'Cantidad','Variante','Talla']],
+            body: productos.map((prod) => [prod.title, currencyFormat.format(prod.total_amount),prod.sku,prod.id,prod.quantity,prod.variation_id,prod.size]),
         });
         
         doc.text("----------Multi Stock Sync----------", 105, pageHeight - 10, { align: "center" });
@@ -319,7 +320,7 @@ const Productos: React.FC = () => {
                 ) : (
                     <div className="table-responsive" style={{ overflowY: 'auto' }}>
                         <table className="table table-striped table-bordered">
-                            <thead>
+                            <thead className='table-dark'>
                                 <tr>
                                     <th>Numero de impresión</th>
                                     <th>SKU</th>
